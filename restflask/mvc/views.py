@@ -29,154 +29,156 @@ def token_needed(f):
     
     return decorated
 
-@app.route('/user', methods=['GET'])
-@token_needed
-def show_all_users(current_user):
+class Showall(MethodView):
+    @token_needed
+    def get(self,current_user):
+        
+        if not current_user.admin:
+            return jsonify({'message' : 'Cannot perform the required function'})
+        
+        users = User.query.all()
+        output = []
+        for use in users:
+            user_details = {}
+            user_details['public_id'] = use.public_id
+            user_details['name'] = use.name
+            user_details['password'] = use.password
+            output.append(user_details)
+            
+         return jsonify({'users' : output})
 
-    if not current_user.admin:
-        return jsonify({'message' : 'Cannot perform the required function'})
+class Createuser(MethodView):
+    @token_needed
+    def post(self,current_user):
+        
+        if not current_user.admin:
+            return jsonify({'message' : 'Cannot perform the required function'})
 
-    users = User.query.all()
-    output = []
-    for use in users:
-        user_details = {}
-        user_details['public_id'] = use.public_id
-        user_details['name'] = use.name
-        user_details['password'] = use.password
-        user_details['admin'] = use.admin
-        output.append(user_details)
+        data = request.get_json()
 
-    return jsonify({'users' : output})
+        hash_password = generate_password_hash(data['password'] , method = 'sha256')
 
-@app.route('/user/<public_id>', methods=['GET'])
-@token_needed
-def show_required_user(current_user,public_id):
+        new_user = User(public_id=str(uuid.uuid4()), name=data['name'], password=hash_password, admin=False)
+        db.session.add(new_user)
+        db.session.commit()
     
-    if not current_user.admin:
-        return jsonify({'message' : 'Cannot do the function'})
+        return jsonify({'message' : 'New user created!'})
 
-    user = User.query.filter_by(public_id = public_id).first()
-    if not in user:
-        return jsonify({'message' : 'User not found'})
+class Editdetails(MethodView):
+    @token_needed
+    def get(self,current_user,public_id):
 
-    user_info = {}
-    user_info['public_id'] = user.public_id
-    user_info['name'] = user.name
-    user_info['password'] = user.password
-    user_info['admin'] = user.admin
-    output.append(user_info)
+        if not current_user.admin:
+            return jsonify({'message' : 'Cannot do the function'})
 
-    return jsonify({'user' : user_info})
+        user = User.query.filter_by(public_id = public_id).first()
+        if not in user:
+            return jsonify({'message' : 'User not found'})
 
-@app.route('/user' , methods=['POST'])
-@token_needed
-def create_user(current_user):
+        user_info = {}
+        user_info['public_id'] = user.public_id
+        user_info['name'] = user.name
+        user_info['password'] = user.password
+        user_info['admin'] = user.admin
+        output.append(user_info)
 
-    if not current_user.admin:
-        return jsonify({'message' : 'Cannot perform the required function'})
+        return jsonify({'user' : user_info})
 
-    data = request.get_json()
-
-    hash_password = generate_password_hash(data['password'] , method = 'sha256')
-
-    new_user = User(public_id=str(uuid.uuid4()), name=data['name'], password=hash_password, admin=False)
-    db.session.add(new_user)
-    db.session.commit()
     
-    return jsonify({'message' : 'New user created!'})
+    @token_needed
+    def put(self,current_user,public_id):
+        
+        if not current_user.admin:
+            return jsonify({'message' : 'Cannot perform the required function'})
 
-@app.route('/user/<public_id>', methods=['PUT'])
-@token_needed
-def promote_user(current_user,public_id):
+        user = User.query.filter_by(public_id = public_id).first()
 
-    if not current_user.admin:
-        return jsonify({'message' : 'Cannot perform the required function'})
-
-    user = User.query.filter_by(public_id = public_id).first()
-
-    if not in user:
-        return jsonify({'message' : 'No user found'})
+        if not in user:
+            return jsonify({'message' : 'No user found'})
     
-    user.admin = True
-    db.session.commit()
+        user.admin = True
+        db.session.commit()
 
-    return jsonify({'message' : 'The User is Promoted'})
+        return jsonify({'message' : 'The User is Promoted'})
 
-@app.route('/user/<public_id>' , methods=['DELETE'])
-@token_needed
-def delete_user(current_user,public_id):
+    @token_needed
+    def delete(current_user,public_id):
 
-    if not current_user.admin:
-        return jsonify({'message' : 'Cannot perform the required function'})
+        if not current_user.admin:
+            return jsonify({'message' : 'Cannot perform the required function'})
 
 
-    user = User.query.filter_by(public_id = public_id).first()
+        user = User.query.filter_by(public_id = public_id).first()
 
-    if not in user:
-        return jsonify({'message' : 'No user found'})
+        if not in user:
+            return jsonify({'message' : 'No user found'})
 
-    db.session.delete(user)
-    db.session.commit()
+        db.session.delete(user)
+        db.session.commit()
 
-    return jsonify({'message' : 'The User Has been deleted'})
+        return jsonify({'message' : 'The User Has been deleted'})
 
-@app.route('/login')
-def login():
-    auth = request.authorization
+class login():
+    def post(self):
+        auth = request.authorization
 
-    if not auth or not auth.username or not auth.password:
+        if not auth or not auth.username or not auth.password:
+            return make_response('Cannot Verify')
+
+        user = User.query.filter_by(name=auth.username).first()
+
+        if not user:
+            return make_response('Cannot Verify')
+
+        if check_password_hash(user.password , auth.password):
+            token = jwt.encode({'public_id' : user.public_id , 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes=30), app.config['SECRET_KEY']})
+
+            return jsonify({'token' : token.decode('UTF-8')})
+
         return make_response('Cannot Verify')
 
-    user = User.query.filter_by(name=auth.username).first()
 
-    if not user:
-        return make_response('Cannot Verify')
+class News(MethodView):
+    @token_needed
+    def get(self,current_user):
+        if not current_user.admin:
+            return jsonify({'message': 'Cannot perform that function!'})
 
-    if check_password_hash(user.password , auth.password):
-        token = jwt.encode({'public_id' : user.public_id , 'exp' : datetime.datetime.utcnow() + datetime.timedelta(minutes=30), app.config['SECRET_KEY']})
+        newsapi = NewsApiClient(api_key=os.environ.get("APIKEY"))
+        data=["sports","business","technology","entertainment"]
+        for k in data:
+         for i in range(1,10):
+            top_headlines = newsapi.get_top_headlines(category=k,country='in', page=i)
+            articles=top_headlines['articles']
+            for i in range(len(articles)):
+                myarticle=articles[i]
+                new_article = News(author=myarticle['author'],title=myarticle['title'],description=myarticle['description'],url=myarticle['url'],content=myarticle['content'],category=k,date=datetime.date.today())
+                db.session.add(new_article)
+        db.session.commit()
 
-        return jsonify({'token' : token.decode('UTF-8')})
-    
-    return make_response('Cannot Verify')
+        return jsonify({"message": "News Stored in Database"})
 
+class Category(MethodView):
+    @token_needed
+    def get(self,num):
+        category=request.args['category']
+        news=News.query.filter_by(category=category,date=datetime.date.today())
+        output=[]
+        for new in news:
+            news_info={}
+            news_info['author'] = new.author
+            news_info['title'] = new.title
+            news_info['description'] = new.description
+            news_info['url'] = new.url
+            news_info['content'] = new.content
+            output.append(news_info)
+        start = (num * 10) - 9
+        end = (num * 10) + 1
+        return jsonify({"message": output[start:end]})
 
-@app.route('/news',methods=['GET'])
-@token_needed
-def newsapp(current_user):
-    if not current_user.admin:
-        return jsonify({'message': 'Cannot perform that function!'})
-
-    newsapi = NewsApiClient(api_key=os.environ.get("APIKEY"))
-    data=["sports","business","technology","entertainment"]
-    for k in data:
-     for i in range(1,10):
-        top_headlines = newsapi.get_top_headlines(category=k,country='in', page=i)
-        articles=top_headlines['articles']
-        for i in range(len(articles)):
-            myarticle=articles[i]
-            new_article = News(author=myarticle['author'],title=myarticle['title'],description=myarticle['description'],url=myarticle['url'],content=myarticle['content'],category=k,date=datetime.date.today())
-            db.session.add(new_article)
-    db.session.commit()
-
-    return jsonify({"message": "News Stored in Database"})
-
-@app.route('/category/<int:num>',methods=['GET'])
-def category(num):
-    category=request.args['category']
-    news=News.query.filter_by(category=category,date=datetime.date.today())
-    output=[]
-    for new in news:
-        news_data={}
-        news_data['author'] = new.author
-        news_data['title'] = new.title
-        news_data['description'] = new.description
-        news_data['url'] = new.url
-        news_data['content'] = new.content
-        output.append(news_data)
-    start = (num * 10) - 9
-    end = (num * 10) + 1
-    return jsonify({"message": output[start:end]})
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
+app.add_url_rule('/showuser',view_func=Showall.as_view('Suser'))
+app.add_url_rule('/signin',view_func=Createuser.as_view('user'))
+app.add_url_rule('/user/<public_id>', view_func=Editdetails.as_view('Euser'))
+app.add_url_rule('/login',view_func=Login.as_view('login'))
+app.add_url_rule('/news',view_func=News.as_view('news'))
+app.add_url_rule('/category',view_func=Category.as_view('category'))
