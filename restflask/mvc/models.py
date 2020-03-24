@@ -13,7 +13,6 @@ class User(db.Model):
     public_id = db.Column(db.Text, unique=True)
     name = db.Column(db.Text,nullable=False)
     password = db.Column(db.Text,nullable=False)
-    admin = db.Column(db.Boolean)
 
 class News(db.Model):
    id = db.Column(db.Integer, primary_key=True)
