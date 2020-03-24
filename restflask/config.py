@@ -5,7 +5,3 @@ class DevelopmentConfig(object):
   
   SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:password123@localhost/mydb'
   SQLALCHEMY_TRACK_MODIFICATIONS = False
-  
-app_config = {
-  'development' : DevelopmentConfig
-}
