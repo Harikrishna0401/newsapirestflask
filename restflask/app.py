@@ -1,4 +1,4 @@
-from package import app
+from mvc import app
 import os
 
 
