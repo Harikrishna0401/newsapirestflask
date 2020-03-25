@@ -1,5 +1,5 @@
 from mvc import app
-from .views import Getall,Cuser,Edituser,Login,Collect,Category
+from .views import Showall,Createuser,Editdetails,Login,News,Category
 
 
 
