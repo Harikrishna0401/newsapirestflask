@@ -1,9 +1,11 @@
+from mvc import app
 from flask import Flask , request , jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 import uuid
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import datetime
+from .models import User,News,db
 from functools import wraps
 from newsapi import NewsApiClient
 import os
