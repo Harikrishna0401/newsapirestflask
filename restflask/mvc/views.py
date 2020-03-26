@@ -50,7 +50,6 @@ class Showall(MethodView):
          return jsonify({'users' : output})
 
 class Createuser(MethodView):
-    @token_needed
     def post(self):
         
         if not current_user.admin:
