@@ -51,12 +51,19 @@ class Showall(MethodView):
 
 class Createuser(MethodView):
     @token_needed
-    def post(self,current_user):
+    def post(self):
         
         if not current_user.admin:
             return jsonify({'message' : 'Cannot perform the required function'})
 
         data = request.get_json()
+        
+        if User.query.filter_by(name = data['name']).first() is not None:
+            return jsonify({'message' : 'User name already Exist'})
+        
+        if len(data['password'])<8:
+            return jsonify({'message' : 'minimum length of the password is 8'})
+        
 
         hash_password = generate_password_hash(data['password'] , method = 'sha256')
 
@@ -88,10 +95,10 @@ class Editdetails(MethodView):
 
     
     @token_needed
-    def put(self,current_user,public_id):
+    def put(self):
         
-        if not current_user.admin:
-            return jsonify({'message' : 'Cannot perform the required function'})
+        token = request.headers[''x-access-token']
+        data = jwt.decode(token, app.config['SECRET_KEY']
 
         user = User.query.filter_by(public_id = public_id).first()
 
