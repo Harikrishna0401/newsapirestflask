@@ -27,7 +27,7 @@ def token_needed(f):
         except:
             return jsonify({'message' : 'Token is invalid'})
 
-        return f(current_user , *args, **kwargs)
+        return f(*args, **kwargs)
     
     return decorated
 
