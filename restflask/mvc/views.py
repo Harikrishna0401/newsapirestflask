@@ -35,9 +35,6 @@ class Showall(MethodView):
     @token_needed
     def get(self,current_user):
         
-        if not current_user.admin:
-            return jsonify({'message' : 'Cannot perform the required function'})
-        
         users = User.query.all()
         output = []
         for use in users:
@@ -51,9 +48,6 @@ class Showall(MethodView):
 
 class Createuser(MethodView):
     def post(self):
-        
-        if not current_user.admin:
-            return jsonify({'message' : 'Cannot perform the required function'})
 
         data = request.get_json()
         
@@ -75,9 +69,6 @@ class Createuser(MethodView):
 class Editdetails(MethodView):
     @token_needed
     def get(self,current_user,public_id):
-
-        if not current_user.admin:
-            return jsonify({'message' : 'Cannot do the function'})
 
         user = User.query.filter_by(public_id = public_id).first()
         if not in user:
@@ -121,10 +112,9 @@ class Editdetails(MethodView):
 
     @token_needed
     def delete(current_user,public_id):
-
-        if not current_user.admin:
-            return jsonify({'message' : 'Cannot perform the required function'})
-
+                                
+        token = request.headers[''x-access-token']
+        data = jwt.decode(token, app.config['SECRET_KEY'])
 
         user = User.query.filter_by(public_id = public_id).first()
 
@@ -159,8 +149,6 @@ class login():
 class News(MethodView):
     @token_needed
     def get(self,current_user):
-        if not current_user.admin:
-            return jsonify({'message': 'Cannot perform that function!'})
 
         newsapi = NewsApiClient(api_key=os.environ.get("APIKEY"))
         data=["sports","business","technology","entertainment"]
