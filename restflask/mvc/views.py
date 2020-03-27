@@ -57,8 +57,8 @@ class Createuser(MethodView):
 
         data = request.get_json()
         
-        if User.query.filter_by(name = data['name']).first() is not None:
-            return jsonify({'message' : 'User name already Exist'})
+        if User.query.filter_by(name = data['username']).first() is not None:
+            return jsonify({'message' : 'Username already Exist'})
         
         if len(data['password'])<8:
             return jsonify({'message' : 'minimum length of the password is 8'})
@@ -87,7 +87,8 @@ class Editdetails(MethodView):
         user_info['public_id'] = user.public_id
         user_info['name'] = user.name
         user_info['password'] = user.password
-        user_info['admin'] = user.admin
+        user_info['username'] = user.username
+        user_info['email'] = user.email
         output.append(user_info)
 
         return jsonify({'user' : user_info})
@@ -97,14 +98,23 @@ class Editdetails(MethodView):
     def put(self):
         
         token = request.headers[''x-access-token']
-        data = jwt.decode(token, app.config['SECRET_KEY']
+        data = jwt.decode(token, app.config['SECRET_KEY'])
 
         user = User.query.filter_by(public_id = public_id).first()
 
         if not in user:
             return jsonify({'message' : 'No user found'})
-    
-        user.admin = True
+        
+        info = request.get_json()
+        user.email = data["email"]
+        curr_pass = data["curr_pass"]
+                                
+        if check_password_hash(user.password , curr_pass):
+            user.password = data["new_pass"]
+        
+        else:
+            return jsonify({'message' : 'Enter correct current Password'})
+        
         db.session.commit()
 
         return jsonify({'message' : 'The User is Promoted'})
