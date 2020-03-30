@@ -68,33 +68,29 @@ class Createuser(MethodView):
 
 class Editdetails(MethodView):
     @token_needed
-    def get(self,current_user,public_id):
+    def get(self):
 
-        user = User.query.filter_by(public_id = public_id).first()
-        if not in user:
-            return jsonify({'message' : 'User not found'})
-
-        user_info = {}
-        user_info['public_id'] = user.public_id
-        user_info['name'] = user.name
-        user_info['password'] = user.password
-        user_info['username'] = user.username
-        user_info['email'] = user.email
-        output.append(user_info)
+        user = User.query.all()
+        
+        output = []
+        
+        for mem in users:
+            user_info = {}
+            user_info['public_id'] = user.public_id
+            user_info['name'] = user.name
+            user_info['password'] = user.password
+            user_info['username'] = user.username
+            user_info['email'] = user.email
+            output.append(user_info)
 
         return jsonify({'user' : user_info})
 
     
     @token_needed
-    def put(self):
+    def put(self,current_user):
         
-        token = request.headers[''x-access-token']
-        data = jwt.decode(token, app.config['SECRET_KEY'])
-
-        user = User.query.filter_by(public_id = public_id).first()
-
-        if not in user:
-            return jsonify({'message' : 'No user found'})
+        if not current_user:
+           return jsonify({'message' : 'No such User'})
         
         info = request.get_json()
         user.email = data["email"]
@@ -108,10 +104,10 @@ class Editdetails(MethodView):
         
         db.session.commit()
 
-        return jsonify({'message' : 'The User is Promoted'})
+        return jsonify({'message' : 'The User details are Updated'})
 
     @token_needed
-    def delete(current_user,public_id):
+    def delete(self,current_user):
                                 
         token = request.headers[''x-access-token']
         data = jwt.decode(token, app.config['SECRET_KEY'])
